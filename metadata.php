@@ -11,14 +11,14 @@ $aModule = [
     'description' => [
         'de' => 'Integration von Objectcode K3',
     ],
-    'version' => '1.0.3',
+    'version' => '1.1.0',
     'author' => 'ObjectCode GmbH',
     'email' => 'info@objectcode.de',
     'url' => 'www.objectcode.de',
     'thumbnail' => 'logo.webp',
     'extend' => [
-        \OxidEsales\Eshop\Application\Model\BasketItem::class => \ObjectCode\K3\Extend\Application\Model\BasketItem::class,
-        \OxidEsales\Eshop\Application\Model\Order::class => \ObjectCode\K3\Extend\Application\Model\Order::class,
+       // \OxidEsales\Eshop\Application\Model\BasketItem::class => \ObjectCode\K3\Extend\Application\Model\BasketItem::class,
+        //\OxidEsales\Eshop\Application\Model\Order::class => \ObjectCode\K3\Extend\Application\Model\Order::class,
     ],
     'controllers' => [
         'oc_ock3_productexportcontroller' => \ObjectCode\K3\Application\Controller\ProductExportController::class,
@@ -43,17 +43,24 @@ $aModule = [
         ],
         [
             'group' => 'ock3',
+            'name' => 'blOcK3CombineArticles',
+            'type' => 'bool',
+            'value' => false,
+            'position' => 20,
+        ],
+        [
+            'group' => 'ock3',
             'name' => 'sOcK3AuthSecret',
             'type' => 'str',
             'value' => '',
-            'position' => 20,
+            'position' => 30,
         ],
         [
             'group' => 'ock3',
             'name' => 'sOcK3AuthToken',
             'type' => 'str',
             'value' => '',
-            'position' => 30,
+            'position' => 40,
         ],
     ],
     'blocks' => [

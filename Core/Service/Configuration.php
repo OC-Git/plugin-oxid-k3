@@ -5,6 +5,7 @@ namespace ObjectCode\K3\Core\Service;
 use ObjectCode\K3\Core\Logger;
 use ObjectCode\K3\Core\Request;
 use OxidEsales\Eshop\Core\Registry;
+use OxidEsales\Eshop\Core\PictureHandler;
 
 class Configuration
 {
@@ -20,16 +21,50 @@ class Configuration
      */
     public function addToBasket($configurationId, $basket)
     {
-        $configuration = $this->getConfigurationModel($configurationId);
-        if ( !$configuration ) {
+        $configurationModel = $this->getConfigurationModel($configurationId);
+        if (!$configurationModel) {
             $error = Registry::getLang()->translateString('OC_K3_EXCEPTION_CONFIGURATION_ERROR');
             throw new \Exception($error);
         }
-        $basketArticles = $configuration->getBasketProducts();
-        foreach ($basketArticles as $basketArticle) {
-            $basketItem = $basket->addToBasket($basketArticle['id'], $basketArticle['amount'], null,
-                $this->getFormattedParams($basketArticle['params']));
-            $this->setBasketItemPrice($basket, $basketItem, $basketArticle['price']);
+        $basketArticles = $configurationModel->getBasketProducts();
+        if (Registry::getConfig()->getConfigParam('blOcK3CombineArticles')) {
+            $configuration = $configurationModel->getConfiguration();
+            $price = $this->calculateCombinedPrice($basketArticles);
+            $article = oxNew('oxArticle');
+            $descriptionHeader = '<div class="product_title_big"><h2>K3 Konfiguration ' . $configurationId . '</h2></div>';
+            $descriptionList = '<ul>';
+            foreach ($configuration->variables as $variable) {
+                $descriptionList .= '<li>' . $variable->value . '</li>';
+            }
+            $descriptionList .= '</ul>';
+            $descriptionLink = '<a href="' . $configuration->frontendURL .'" target="_blank">Link</a>';
+            $description = $descriptionHeader . $descriptionList . $descriptionLink;
+            $article->assign([
+                'oxarticles__oxtitle' => new \OxField('K3 Konfiguration ' . $configurationId),
+                'oxarticles__oxshortdesc' => new \OxField('K3 Konfiguration ' . $configurationId),
+                //'oxarticles__oxlongdesc' => new \OxField($description), This does'nt work... Don't know why!
+                'oxarticles__oxprice' => new \OxField($price),
+                'oxarticles__oxstock' => new \OxField(1),
+                'oxarticles__oxactive' => new \OxField(1),
+                'oxarticles__oxissearch' => new \OxField(0),
+                'oxarticles__oxhidden' => new \OxField(1),
+                'oxarticles__oxartnum' => new \OxField('K3C_' . $configurationId),
+            ]);
+            $article->setArticleLongDesc($description);
+
+            $local_image_path = $this->downloadAndSaveConfigurationImage($configuration->image, strtolower('K3C_' . $configurationId));
+            $article->oxarticles__oxpic1 = new \OxField(basename($local_image_path));
+
+            if ($article->save()) {
+                $basketItem = $basket->addToBasket($article->oxarticles__oxid->value, 1, null, $this->getFormattedParams([]));
+                $this->setBasketItemPrice($basket, $basketItem, $price);
+            }
+        } else {
+            foreach ($basketArticles as $basketArticle) {
+                $basketItem = $basket->addToBasket($basketArticle['id'], $basketArticle['amount'], null,
+                    $this->getFormattedParams($basketArticle['params']));
+                $this->setBasketItemPrice($basket, $basketItem, $basketArticle['price']);
+            }
         }
     }
 
@@ -79,7 +114,7 @@ class Configuration
     {
         $configurationJson = $this->loadConfiguration($configurationId);
         $configurationObject = json_decode($configurationJson);
-        if ( $configurationObject) {
+        if ($configurationObject) {
             $configuration = oxNew(\ObjectCode\K3\Application\Model\Configuration::class);
             $configuration->setConfiguration($configurationObject);
             return $configuration;
@@ -111,9 +146,38 @@ class Configuration
     public function setOrdered($configurationId, $app)
     {
         $response = oxNew(Request::class)->setOrdered($configurationId, $app);
-        if ( $response ) {
+        if ($response) {
             Registry::get(Logger::class)->info('set ordered result', [$response]);
             return json_decode($response);
         }
+    }
+
+    private function calculateCombinedPrice($basketArticles): int
+    {
+        return $basketArticles[0]["price"];
+    }
+
+    private function downloadAndSaveConfigurationImage(string $remoteUrl, string $articleId): string
+    {
+        $remotePath = parse_url($remoteUrl, PHP_URL_PATH);
+        $remoteExtension = pathinfo($remotePath, PATHINFO_EXTENSION);
+        $localPath = "";
+        $imageContent = file_get_contents($remoteUrl);
+        if ($imageContent !== false) {
+            $imageName = $articleId . '_main.' . $remoteExtension;
+            $localPath = 'out/pictures/master/product/1/' . $imageName;
+
+            $localDirectory = dirname($localPath);
+            if (!is_dir($localDirectory)) {
+                if (!mkdir($localDirectory, 0755, true)) {
+                    $localPath = "";
+                }
+            }
+            file_put_contents($localPath, $imageContent);
+            $localPath = $imageName;
+        } else {
+            $error = error_get_last();
+        }
+        return $localPath;
     }
 }

@@ -185,7 +185,7 @@ class Configuration
      * @return string
      * @throws \OxidEsales\Eshop\Core\Exception\DatabaseConnectionException
      */
-    protected function getOxidFromArticleNumber(string $articleNumber): string
+    public function getOxidFromArticleNumber(string $articleNumber): string
     {
         $query = "select oxid from oxarticles where oxartnum = :oxartnum limit 1";
         $oxid = DatabaseProvider::getDb()->getOne($query, [':oxartnum' => $articleNumber]);

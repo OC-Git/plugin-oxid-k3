@@ -2,7 +2,7 @@
 
 namespace ObjectCode\K3\Application\Controller;
 
-use ObjectCode\K3\Application\Model\Configuration;
+//use ObjectCode\K3\Application\Model\Configuration;
 use ObjectCode\K3\Core\Logger;
 use ObjectCode\K3\Core\Output;
 use OxidEsales\Eshop\Core\Registry;
