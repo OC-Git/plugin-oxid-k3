@@ -26,17 +26,13 @@ class Configuration
             $error = Registry::getLang()->translateString('OC_K3_EXCEPTION_CONFIGURATION_ERROR');
             throw new \Exception($error);
         }
-        $basketArticles = $configurationModel->getBasketProducts();
+
         if (Registry::getConfig()->getConfigParam('blOcK3CombineArticles')) {
             $configuration = $configurationModel->getConfiguration();
-            $price = $this->calculateCombinedPrice($basketArticles);
+            $price = $configuration->price;
             $article = oxNew('oxArticle');
             $descriptionHeader = '<div class="product_title_big"><h2>K3 Konfiguration ' . $configurationId . '</h2></div>';
-            $descriptionList = '<ul>';
-            foreach ($configuration->variables as $variable) {
-                $descriptionList .= '<li>' . $variable->value . '</li>';
-            }
-            $descriptionList .= '</ul>';
+            $descriptionList = $configuration->description;
             $descriptionLink = '<a href="' . $configuration->frontendURL .'" target="_blank">Link</a>';
             $description = $descriptionHeader . $descriptionList . $descriptionLink;
             $article->assign([
@@ -60,6 +56,7 @@ class Configuration
                 $this->setBasketItemPrice($basket, $basketItem, $price);
             }
         } else {
+            $basketArticles = $configurationModel->getBasketProducts();
             foreach ($basketArticles as $basketArticle) {
                 $basketItem = $basket->addToBasket($basketArticle['id'], $basketArticle['amount'], null,
                     $this->getFormattedParams($basketArticle['params']));
