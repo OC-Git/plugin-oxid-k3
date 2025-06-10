@@ -117,6 +117,7 @@ class Configuration
         $params['id'] = $this->getOxidFromArticleNumber($article->article);
         $params['amount'] = $article->qty;
         $params['price'] = $this->getConfigurationPrice();
+        $params['mainProduct'] = $article->main ?? false;
         return [
             'id' => $this->getOxidFromArticleNumber($article->article),
             'amount' => $article->qty,
@@ -150,6 +151,7 @@ class Configuration
         $params['app'] = $configuration->app;
         $params['url'] = $this->getCurrenConfigurationUrl();
         $params['price'] = $this->getConfigurationPrice();
+        $params['mainProduct'] = $article->main ?? false;
         foreach ($variables as $variable) {
             $params['variables'][] = $this->getVariableParams($variable);
         }
