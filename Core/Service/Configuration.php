@@ -30,7 +30,7 @@ class Configuration
         $persParam = [
             'k3' => json_encode($configurationModel->getConfiguration())
         ];
-        Registry::get(Logger::class)->info('$persParam', [$persParam]);
+
         if (Registry::getConfig()->getConfigParam('blOcK3CombineArticles')) {
             $configuration = $configurationModel->getConfiguration();
             $price = $configuration->price;
@@ -120,17 +120,6 @@ class Configuration
         }
         $error = Registry::getLang()->translateString('OC_K3_EXCEPTION_NO_CONFIGURATION');
         throw new \Exception($error);
-    }
-
-    /**
-     * Load configuration and return raw json string
-     *
-     * @return string
-     * @throws \Exception
-     */
-    protected function getConfigurationJson($configurationId)
-    {
-        return $this->loadConfiguration($configurationId);
     }
 
     /**
