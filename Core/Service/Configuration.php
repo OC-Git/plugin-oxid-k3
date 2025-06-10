@@ -36,15 +36,15 @@ class Configuration
             $descriptionLink = '<a href="' . $configuration->frontendURL .'" target="_blank">Link</a>';
             $description = $descriptionHeader . $descriptionList . $descriptionLink;
             $article->assign([
-                'oxarticles__oxtitle' => new \OxField('K3 Konfiguration ' . $configurationId),
-                'oxarticles__oxshortdesc' => new \OxField('K3 Konfiguration ' . $configurationId),
+                'oxarticles__oxtitle' => 'K3 Konfiguration ' . $configurationId,
+                'oxarticles__oxshortdesc' => 'K3 Konfiguration ' . $configurationId,
                 //'oxarticles__oxlongdesc' => new \OxField($description), This does'nt work... Don't know why!
-                'oxarticles__oxprice' => new \OxField($price),
-                'oxarticles__oxstock' => new \OxField(1),
-                'oxarticles__oxactive' => new \OxField(1),
-                'oxarticles__oxissearch' => new \OxField(0),
-                'oxarticles__oxhidden' => new \OxField(1),
-                'oxarticles__oxartnum' => new \OxField('K3C_' . $configurationId),
+                'oxarticles__oxprice' => $price,
+                'oxarticles__oxstock' => 1,
+                'oxarticles__oxactive' => 1,
+                'oxarticles__oxissearch' => 0,
+                'oxarticles__oxhidden' => 1,
+                'oxarticles__oxartnum' => 'K3C_' . $configurationId,
             ]);
             $article->setArticleLongDesc($description);
 
