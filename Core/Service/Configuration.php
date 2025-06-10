@@ -27,6 +27,10 @@ class Configuration
             throw new \Exception($error);
         }
 
+        $persParam = [
+            'k3' => json_encode($configurationModel->getConfiguration())
+        ];
+        Registry::get(Logger::class)->info('$persParam', [$persParam]);
         if (Registry::getConfig()->getConfigParam('blOcK3CombineArticles')) {
             $configuration = $configurationModel->getConfiguration();
             $price = $configuration->price;
@@ -38,7 +42,6 @@ class Configuration
             $article->assign([
                 'oxarticles__oxtitle' => 'K3 Konfiguration ' . $configurationId,
                 'oxarticles__oxshortdesc' => 'K3 Konfiguration ' . $configurationId,
-                //'oxarticles__oxlongdesc' => new \OxField($description), This does'nt work... Don't know why!
                 'oxarticles__oxprice' => $price,
                 'oxarticles__oxstock' => 1,
                 'oxarticles__oxactive' => 1,
@@ -49,34 +52,20 @@ class Configuration
             $article->setArticleLongDesc($description);
 
             $local_image_path = $this->downloadAndSaveConfigurationImage($configuration->image, strtolower('K3C_' . $configurationId));
-            $article->oxarticles__oxpic1 = new \OxField(basename($local_image_path));
+            $article->oxarticles__oxpic1 = basename($local_image_path);
 
             if ($article->save()) {
-                $basketItem = $basket->addToBasket($article->oxarticles__oxid->value, 1, null, $this->getFormattedParams([]));
+                $basketItem = $basket->addToBasket($article->oxarticles__oxid->value, 1, null, $persParam);
                 $this->setBasketItemPrice($basket, $basketItem, $price);
             }
         } else {
             $basketArticles = $configurationModel->getBasketProducts();
             foreach ($basketArticles as $basketArticle) {
-                $basketItem = $basket->addToBasket($basketArticle['id'], $basketArticle['amount'], null,
-                    $this->getFormattedParams($basketArticle['params']));
+                $articlePersParam = $basketArticle['params']['mainProduct'] ? $persParam : null;
+                $basketItem = $basket->addToBasket($basketArticle['id'], $basketArticle['amount'], null, $articlePersParam);
                 $this->setBasketItemPrice($basket, $basketItem, $basketArticle['price']);
             }
         }
-    }
-
-    /**
-     * Return formatted params
-     *
-     * @param $configurationParams
-     * @return array
-     */
-    protected function getFormattedParams($configurationParams): array
-    {
-        $encodedConfiguration = base64_encode(serialize($configurationParams));
-        return [
-            'k3' => $encodedConfiguration
-        ];
     }
 
     /**
@@ -131,6 +120,17 @@ class Configuration
         }
         $error = Registry::getLang()->translateString('OC_K3_EXCEPTION_NO_CONFIGURATION');
         throw new \Exception($error);
+    }
+
+    /**
+     * Load configuration and return raw json string
+     *
+     * @return string
+     * @throws \Exception
+     */
+    protected function getConfigurationJson($configurationId)
+    {
+        return $this->loadConfiguration($configurationId);
     }
 
     /**
