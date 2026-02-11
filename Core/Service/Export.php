@@ -276,7 +276,9 @@ class Export
             $exportProduct->setName($article->getFieldData('oxtitle'));
             $exportProduct->setDescription($article->getLongDesc());
             $category = $article->getCategory();
-            $exportProduct->setCategory($category->getFieldData('oxtitle'));
+            if($category !== null) {
+                $exportProduct->setCategory($category->getFieldData('oxtitle'));
+            }
             $prices = $this->getExportProductPrices($article);
             $exportProduct->setPrices($prices);
             return $exportProduct;
