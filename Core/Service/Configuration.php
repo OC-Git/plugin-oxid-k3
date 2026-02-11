@@ -4,8 +4,8 @@ namespace ObjectCode\K3\Core\Service;
 
 use ObjectCode\K3\Core\Logger;
 use ObjectCode\K3\Core\Request;
+use OxidEsales\Eshop\Core\Field;
 use OxidEsales\Eshop\Core\Registry;
-use OxidEsales\Eshop\Core\PictureHandler;
 
 class Configuration
 {
@@ -39,6 +39,17 @@ class Configuration
             $descriptionList = $configuration->description;
             $descriptionLink = '<a href="' . $configuration->frontendURL .'" target="_blank">Link</a>';
             $description = $descriptionHeader . $descriptionList . $descriptionLink;
+
+            $prefix = (string) Registry::getConfig()->getConfigParam('sOcK3ArticleNumberPrefix');
+            $suffix = (string) Registry::getConfig()->getConfigParam('sOcK3ArticleNumberSuffix');
+            if (!$prefix ) {
+                $prefix = 'K3C_';
+            }
+            if (!$suffix) {
+                $suffix = '';
+            }
+            $oxartnum = $prefix . $configurationId . $suffix;
+
             $article->assign([
                 'oxarticles__oxtitle' => 'K3 Konfiguration ' . $configurationId,
                 'oxarticles__oxshortdesc' => 'K3 Konfiguration ' . $configurationId,
@@ -47,12 +58,12 @@ class Configuration
                 'oxarticles__oxactive' => 1,
                 'oxarticles__oxissearch' => 0,
                 'oxarticles__oxhidden' => 1,
-                'oxarticles__oxartnum' => 'K3C_' . $configurationId,
+                'oxarticles__oxartnum' => $oxartnum,
             ]);
             $article->setArticleLongDesc($description);
 
-            $local_image_path = $this->downloadAndSaveConfigurationImage($configuration->image, strtolower('K3C_' . $configurationId));
-            $article->oxarticles__oxpic1 = basename($local_image_path);
+            $local_image_path = $this->downloadAndSaveConfigurationImage($configuration->image, strtolower($oxartnum));
+            $article->oxarticles__oxpic1 = new Field(basename($local_image_path));
 
             if ($article->save()) {
                 $basketItem = $basket->addToBasket($article->oxarticles__oxid->value, 1, null, $persParam);

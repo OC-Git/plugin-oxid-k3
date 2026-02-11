@@ -62,6 +62,20 @@ $aModule = [
             'value' => '',
             'position' => 40,
         ],
+        [
+            'group' => 'ock3',
+            'name' => 'sOcK3ArticleNumberPrefix',
+            'type' => 'str',
+            'value' => 'K3C_',
+            'position' => 50,
+        ],
+        [
+            'group' => 'ock3',
+            'name' => 'sOcK3ArticleNumberSuffix',
+            'type' => 'str',
+            'value' => '',
+            'position' => 60,
+        ],
     ],
     'blocks' => [
         [

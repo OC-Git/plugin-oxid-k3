@@ -11,4 +11,6 @@ $aLang = [
     'SHOP_MODULE_blOcK3CombineArticles'             => 'Artikel kombinieren',
     'SHOP_MODULE_sOcK3AuthSecret'            => 'Secret',
     'SHOP_MODULE_sOcK3AuthToken'            => 'Token',
+    'SHOP_MODULE_sOcK3ArticleNumberPrefix'  => 'Artikelnummer-Präfix',
+    'SHOP_MODULE_sOcK3ArticleNumberSuffix'  => 'Artikelnummer-Suffix',
 ];
