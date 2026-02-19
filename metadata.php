@@ -17,6 +17,7 @@ $aModule = [
     'url' => 'www.objectcode.de',
     'thumbnail' => 'logo.webp',
     'extend' => [
+        \OxidEsales\Eshop\Core\Session::class => \ObjectCode\K3\Extend\Core\Session::class,
        // \OxidEsales\Eshop\Application\Model\BasketItem::class => \ObjectCode\K3\Extend\Application\Model\BasketItem::class,
         //\OxidEsales\Eshop\Application\Model\Order::class => \ObjectCode\K3\Extend\Application\Model\Order::class,
     ],
