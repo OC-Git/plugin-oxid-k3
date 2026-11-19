@@ -51,6 +51,20 @@ class Export
     protected string $attributeOxid = 'k3product';
 
     /**
+     * Article filters from K3 ("Filter für Artikel"), filter name => values
+     *
+     * @var array<string, string[]>
+     */
+    protected array $filters = [];
+
+    /**
+     * Query parameters for the filtered products query
+     *
+     * @var array<string, string>
+     */
+    protected array $filterParams = [];
+
+    /**
      * set default values
      */
     public function __construct()
@@ -198,7 +212,7 @@ class Export
     {
         $products = [];
         $query = $this->getProductsQuery();
-        $result = DatabaseProvider::getDb()->getAll($query);
+        $result = DatabaseProvider::getDb()->getAll($query, $this->filterParams);
         if ($result && is_array($result) && count($result) > 0) {
             foreach ($result as $row) {
                 $id = $row[0];
@@ -212,6 +226,14 @@ class Export
                     }
                 }
             }
+        }
+        // Articles the plugin created for combined orders are K3's own and
+        // must not come back into the configurator's article list
+        $products = array_filter($products, fn($product) => stripos($product->getNo(), 'K3C_') !== 0);
+        // Variants have article numbers of their own, so the reference filter
+        // is checked on what is actually exported
+        if (isset($this->filters['reference'])) {
+            $products = array_filter($products, fn($product) => $this->matchesReference($product->getNo()));
         }
         return $products;
     }
@@ -379,6 +401,12 @@ class Export
      */
     protected function getProductsQuery(): string
     {
+        // A filter from K3 replaces the K3 attribute; the attribute only
+        // decides when no filter is set
+        if (!empty($this->filters)) {
+            return $this->getFilteredProductsQuery();
+        }
+
         $o2aTable = $this->getOxObject2AttributeTable();
         $query = "select count(oxid) from $o2aTable where $o2aTable.oxattrid = '{$this->attributeOxid}' limit 1";
         $selectedCount = DatabaseProvider::getDb()->getOne($query);
@@ -411,4 +439,126 @@ class Export
         return "select $table.oxid, $table.oxparentid, $table.oxvarcount from $table join $o2aTable on $o2aTable.oxobjectid = $table.oxid and $o2aTable.oxattrid = '{$this->attributeOxid}' where $table.oxactive = 1 order by $table.oxartnum";
     }
 
+
+    /**
+     * Set the article filters from K3
+     *
+     * @param array<string, string[]> $filters see \ObjectCode\K3\Core\ArticleFilter
+     * @return void
+     */
+    public function setFilters(array $filters)
+    {
+        $this->filters = $filters;
+    }
+
+    /**
+     * Query for all active articles matching the filters
+     *
+     * name, category and manufacturer are checked on the article row. A parent
+     * article that matches brings all its variants, since variants usually
+     * inherit title, categories and manufacturer from it.
+     *
+     * @return string
+     */
+    protected function getFilteredProductsQuery(): string
+    {
+        $table = $this->getArticleTable();
+        $categoryTable = $this->getViewTable('oxcategories');
+        $manufacturerTable = $this->getViewTable('oxmanufacturers');
+        $where = ["$table.oxactive = 1"];
+        $this->filterParams = [];
+
+        if (isset($this->filters['name'])) {
+            $where[] = $this->orConditions($this->filters['name'], fn($value) =>
+                "$table.oxtitle LIKE " . $this->param('%' . $this->escapeLike($value) . '%'));
+        }
+        if (isset($this->filters['category'])) {
+            $where[] = "EXISTS (SELECT 1 FROM oxobject2category o2c
+                JOIN $categoryTable cat ON cat.oxid = o2c.oxcatnid
+                WHERE o2c.oxobjectid = $table.oxid AND " .
+                $this->orConditions($this->filters['category'], fn($value) =>
+                    '(cat.oxid = ' . $this->param($value) . ' OR cat.oxtitle = ' . $this->param($value) . ')') . ')';
+        }
+        if (isset($this->filters['reference'])) {
+            // Narrow down in SQL so only candidates get loaded; an article
+            // matches by its own number or by one of its variants. The exact
+            // check on the exported numbers follows in getExportProducts()
+            $where[] = $this->orConditions($this->filters['reference'], function ($value) use ($table) {
+                $like = $this->param(str_replace('*', '%', $this->escapeLike($value)));
+                return "($table.oxartnum LIKE $like OR EXISTS (SELECT 1 FROM $table var
+                    WHERE var.oxparentid = $table.oxid AND var.oxartnum LIKE $like))";
+            });
+        }
+        if (isset($this->filters['manufacturer'])) {
+            $where[] = "$table.oxmanufacturerid IN (SELECT man.oxid FROM $manufacturerTable man WHERE " .
+                $this->orConditions($this->filters['manufacturer'], fn($value) =>
+                    '(man.oxid = ' . $this->param($value) . ' OR man.oxtitle = ' . $this->param($value) . ')') . ')';
+        }
+
+        return "select $table.oxid, $table.oxparentid, $table.oxvarcount from $table where " .
+            implode(' AND ', $where) . " order by $table.oxartnum";
+    }
+
+    /**
+     * Does an article number match the reference filter (* as wildcard)?
+     *
+     * @param string $articleNumber
+     * @return bool
+     */
+    protected function matchesReference(string $articleNumber): bool
+    {
+        foreach ($this->filters['reference'] ?? [] as $pattern) {
+            $regex = '/^' . str_replace('\\*', '.*', preg_quote($pattern, '/')) . '$/iu';
+            if (preg_match($regex, $articleNumber)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Language/shop view of a table
+     *
+     * @param string $table
+     * @return string
+     */
+    protected function getViewTable(string $table): string
+    {
+        $viewNameGenerator = Registry::get(\OxidEsales\Eshop\Core\TableViewNameGenerator::class);
+        return $viewNameGenerator->getViewName($table, $this->getLangId(), $this->getShopId());
+    }
+
+    /**
+     * Add a bound parameter, return its placeholder
+     *
+     * @param string $value
+     * @return string
+     */
+    protected function param(string $value): string
+    {
+        $name = ':f' . count($this->filterParams);
+        $this->filterParams[$name] = $value;
+        return $name;
+    }
+
+    /**
+     * @param string[] $values
+     * @param callable $toCondition
+     * @return string
+     */
+    protected function orConditions(array $values, callable $toCondition): string
+    {
+        return '(' . implode(' OR ', array_map($toCondition, $values)) . ')';
+    }
+
+    /**
+     * LIKE wildcards in a value are literals
+     *
+     * @param string $value
+     * @return string
+     */
+    protected function escapeLike(string $value): string
+    {
+        return addcslashes($value, '%_\\');
+    }
 }
