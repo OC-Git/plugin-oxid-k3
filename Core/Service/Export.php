@@ -227,6 +227,9 @@ class Export
                 }
             }
         }
+        // Articles the plugin created for combined orders are K3's own and
+        // must not come back into the configurator's article list
+        $products = array_filter($products, fn($product) => stripos($product->getNo(), 'K3C_') !== 0);
         // Variants have article numbers of their own, so the reference filter
         // is checked on what is actually exported
         if (isset($this->filters['reference'])) {
@@ -475,6 +478,16 @@ class Export
                 WHERE o2c.oxobjectid = $table.oxid AND " .
                 $this->orConditions($this->filters['category'], fn($value) =>
                     '(cat.oxid = ' . $this->param($value) . ' OR cat.oxtitle = ' . $this->param($value) . ')') . ')';
+        }
+        if (isset($this->filters['reference'])) {
+            // Narrow down in SQL so only candidates get loaded; an article
+            // matches by its own number or by one of its variants. The exact
+            // check on the exported numbers follows in getExportProducts()
+            $where[] = $this->orConditions($this->filters['reference'], function ($value) use ($table) {
+                $like = $this->param(str_replace('*', '%', $this->escapeLike($value)));
+                return "($table.oxartnum LIKE $like OR EXISTS (SELECT 1 FROM $table var
+                    WHERE var.oxparentid = $table.oxid AND var.oxartnum LIKE $like))";
+            });
         }
         if (isset($this->filters['manufacturer'])) {
             $where[] = "$table.oxmanufacturerid IN (SELECT man.oxid FROM $manufacturerTable man WHERE " .

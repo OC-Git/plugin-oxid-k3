@@ -167,6 +167,10 @@ class Configuration
     protected function toText(string $text): string
     {
         $text = str_replace(['<', '>', '"', "'", '`'], ['‹', '›', '”', '’', '’'], $text);
+        // A character reference (&#60; &lt; &#x3C; …) would become markup again
+        // wherever a browser decodes it, e.g. in a basket input. Its ampersand
+        // gets a lookalike; a plain "Schwarz & Weiß" stays as it is
+        $text = preg_replace('/&(?=#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]*;?)/iu', '＆', $text) ?? '';
         $text = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $text) ?? '';
         return trim(preg_replace('/\s{2,}/u', ' ', $text) ?? '');
     }
