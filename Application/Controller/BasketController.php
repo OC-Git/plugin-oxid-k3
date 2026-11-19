@@ -27,8 +27,18 @@ class BasketController extends \OxidEsales\Eshop\Application\Controller\Frontend
             Registry::get(Output::class)->json(['message' => 'No cfg parameter found in request.'], 503);
         }
 
+        // OXID starts a session for a new visitor only on actions like
+        // fnc=tobasket. The K3 cart link is none of those, so without this
+        // the configuration lands in a basket that is never saved and the
+        // customer sees an empty cart
+        $session = Registry::getSession();
+        if (!$session->isSessionStarted()) {
+            $session->setForceNewSession();
+            $session->start();
+        }
+
         try {
-            $basket = Registry::getSession()->getBasket();
+            $basket = $session->getBasket();
             $service = oxNew(\ObjectCode\K3\Core\Service\Configuration::class);
             $service->addToBasket($configurationId, $basket);
         } catch (\Exception $e) {

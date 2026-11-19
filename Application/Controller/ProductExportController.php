@@ -2,6 +2,7 @@
 
 namespace ObjectCode\K3\Application\Controller;
 
+use ObjectCode\K3\Core\ArticleFilter;
 use ObjectCode\K3\Core\Connector;
 use ObjectCode\K3\Core\Logger;
 use ObjectCode\K3\Core\Output;
@@ -39,7 +40,14 @@ class ProductExportController extends \OxidEsales\Eshop\Application\Controller\F
         try {
             $connector = oxNew(Connector::class);
             $this->validateSecret($connector);
+            try {
+                $filters = oxNew(ArticleFilter::class)->parse($_GET);
+            } catch (\InvalidArgumentException $e) {
+                Registry::get(Logger::class)->error('Invalid article filter', [$e->getMessage(), __METHOD__]);
+                Registry::get(Output::class)->json(['message' => $e->getMessage()], 400);
+            }
             $service = oxNew(Export::class);
+            $service->setFilters($filters);
             Registry::get(Output::class)->json($service->getProducts(), 200);
         } catch (\Exception $e) {
             Registry::get(Logger::class)->error('Could not export articles', [

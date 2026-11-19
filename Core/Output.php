@@ -11,6 +11,7 @@ class Output
      */
     protected array $httpStatusMapping = [
         200 => 'HTTP/1.1 200 OK',
+        400 => 'HTTP/1.1 400 Bad Request',
         401 => 'HTTP/1.1 401 Unauthorized',
         403 => 'HTTP/1.1 403 Forbidden',
         500 => 'HTTP/1.1 500 Internal Server Error',

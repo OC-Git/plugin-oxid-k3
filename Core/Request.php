@@ -80,7 +80,7 @@ class Request
      */
     public function getConfiguration($configurationId)
     {
-        $url = str_replace('{cfg}', $configurationId, $this->getConfigurationEndpoint());
+        $url = str_replace('{cfg}', rawurlencode((string)$configurationId), $this->getConfigurationEndpoint());
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_TIMEOUT, 5);

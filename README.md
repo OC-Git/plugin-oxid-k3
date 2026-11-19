@@ -82,11 +82,40 @@ disabling the module. You can also control the K3 environment through the test m
 K3 configurations gets added via OXID persparams and basket item prices are
 set to the amount given by K3.
 
+The persparams hold readable text only: `K3-Code` and `Konfiguration`
+("Label: Value, ..."). OXID prints persparams unescaped in its core templates
+(admin order view, order mails, checkout), and the values come from the public
+K3 configurator, so `< > " ' \`` are replaced by `‹ › ” ’ ’`. The full
+configuration stays in K3 and can be loaded by its code.
+
+The cart link starts an OXID session for new visitors; without it OXID would
+drop the basket of anyone who had no session in the shop yet.
+
 Logentries gets written in `log/ock3.log`.
 
-On installation the attribute `K3` with OXID `k3product` get created to control the export articles.
-Just assign the attribute to the articles you want to export, the value does not matter.
-If no attribute is assigned, all articles get exported.
+### Article filter
+
+K3 appends its "Filter für Artikel" as query string to the export URL. Same
+filters as the K3 plugins for JTL, Shopware and PrestaShop:
+
+| Filter | Meaning |
+|---|---|
+| `reference` | article number of the exported article (variant number for variants), `*` as wildcard |
+| `name` | part of the article title |
+| `category` | id or title of a category the article is assigned to |
+| `manufacturer` | id or title of the manufacturer |
+
+All filters must match (AND), several values separated by comma (OR), e.g.
+`category=Kites,Zubehör&manufacturer=ION`. A parent article that matches brings
+all its variants. An unknown filter returns HTTP 400, so a typo never exports
+the whole catalog.
+
+### K3 attribute
+
+Without a filter, the attribute `K3` (OXID `k3product`, created on installation)
+decides: assign it to the articles you want to export, the value does not
+matter. If no article has it, all articles get exported. As soon as a filter
+is set, the attribute is ignored.
 
 Only active and buyable articles get exported.
 
